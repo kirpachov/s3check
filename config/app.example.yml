@@ -1,0 +1,6 @@
+database:
+  name: s3check
+  host: localhost
+  port: 5432
+  user: s3check
+  password: s3check

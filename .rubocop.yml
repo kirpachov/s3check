@@ -1,0 +1,36 @@
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+
+require:
+  - rubocop-rspec
+  - rubocop-factory_bot
+  - rubocop-rails
+  - rubocop-performance
+
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*_spec.rb"
+    - "config/routes.rb"
+
+RSpec/NestedGroups:
+  Enabled: false
+
+Metrics/MethodLength:
+  Exclude:
+    - "db/migrate/*.rb"
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/StringLiteralsInInterpolation:
+  Enabled: false
+
+Style/StringLiterals:
+  Enabled: false
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+RSpec/ContextWording:
+  Enabled: false
