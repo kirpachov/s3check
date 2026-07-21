@@ -140,6 +140,62 @@ def checks_file_exists?
   File.exist?(checks_file_path)
 end
 
+def load_yaml_file(file_path)
+  YAML.load_file(file_path) || {}
+rescue Psych::SyntaxError => e
+  { '__yaml_error__' => e.message }
+end
+
+def available_check_types
+  Dir.glob(File.join(Config.root, 'app/interactions/check/*.rb')).map do |path|
+    File.basename(path, '.rb')
+  end
+end
+
+def required_paths_from_template(example_hash)
+  checks = example_hash['checks']
+  return [] unless checks.is_a?(Array) && checks.first.is_a?(Hash)
+
+  template_group = checks.first
+  paths = []
+
+  paths << ['name'] if template_group.key?('name')
+  paths << ['bucket'] if template_group.key?('bucket')
+
+  template_check = Array(template_group['check']).first
+  if template_check.is_a?(Hash)
+    paths << ['check', '[]', 'type'] if template_check.key?('type')
+
+    template_params = template_check['params']
+    if template_params.is_a?(Hash)
+      template_params.keys.each do |param_key|
+        paths << ['check', '[]', 'params', param_key]
+      end
+    end
+  end
+
+  paths
+end
+
+def value_present_for_path?(source_hash, path)
+  current = source_hash
+
+  path.each_with_index do |segment, index|
+    if segment == '[]'
+      return false unless current.is_a?(Array) && current.any?
+
+      remaining_path = path[(index + 1)..]
+      return current.any? { |item| value_present_for_path?(item, remaining_path) }
+    end
+
+    return false unless current.is_a?(Hash) && current.key?(segment)
+
+    current = current[segment]
+  end
+
+  !current.to_s.strip.empty?
+end
+
 def env_file_path
   File.join(Config.root, ENV_FILE)
 end
@@ -248,13 +304,57 @@ def check_config_validity
   s3_access_key_id = ENV['S3_ACCESS_KEY'].to_s.strip
   s3_secret_access_key = ENV['S3_SECRET_KEY'].to_s.strip
 
-  missing_keys = []
-  missing_keys << 'ENV.S3_ACCESS_KEY' if s3_access_key_id.empty?
-  missing_keys << 'ENV.S3_SECRET_KEY' if s3_secret_access_key.empty?
-  missing_keys << 's3.region' if s3&.region.to_s.strip.empty?
+  validation_errors = []
+  validation_errors << 'ENV.S3_ACCESS_KEY is missing' if s3_access_key_id.empty?
+  validation_errors << 'ENV.S3_SECRET_KEY is missing' if s3_secret_access_key.empty?
+  validation_errors << 's3.region is missing' if s3&.region.to_s.strip.empty?
 
-  if missing_keys.any?
-    puts "Invalid configuration. Missing fields: #{missing_keys.join(', ')}"
+  unless checks_file_exists?
+    validation_errors << "#{CHECKS_FILE} is missing"
+  end
+
+  checks_hash = checks_file_exists? ? load_yaml_file(checks_file_path) : {}
+  if checks_hash.key?('__yaml_error__')
+    validation_errors << "#{CHECKS_FILE} has invalid YAML format"
+  else
+    checks = checks_hash['checks']
+    validation_errors << "#{CHECKS_FILE}: checks must be a non-empty array" unless checks.is_a?(Array) && checks.any?
+
+    checks_example_hash = load_yaml_file(default_checks_file_path)
+    if checks_example_hash.key?('__yaml_error__')
+      validation_errors << "#{DEFAULT_CHECKS_FILE} has invalid YAML format"
+    else
+      required_paths = required_paths_from_template(checks_example_hash)
+
+      checks.each_with_index do |check_group, index|
+        next unless check_group.is_a?(Hash)
+        next if check_group['name'].to_s.strip.empty?
+
+        required_paths.each do |path|
+          next if value_present_for_path?(check_group, path)
+
+          validation_errors << "#{CHECKS_FILE}: checks[#{index}] missing #{path.join('.').gsub('.[]', '[]')}"
+        end
+
+        Array(check_group['check']).each_with_index do |single_check, check_index|
+          next unless single_check.is_a?(Hash)
+
+          type = single_check['type'].to_s.strip
+          if type.end_with?('.rb')
+            validation_errors << "#{CHECKS_FILE}: checks[#{index}].check[#{check_index}].type must be interaction name without .rb"
+            next
+          end
+
+          next if available_check_types.include?(type)
+
+          validation_errors << "#{CHECKS_FILE}: checks[#{index}].check[#{check_index}].type '#{type}' is not valid. Allowed: #{available_check_types.join(', ')}"
+        end
+      end
+    end
+  end
+
+  if validation_errors.any?
+    puts "Invalid configuration:\n- #{validation_errors.join("\n- ")}"
     exit 1
   end
 
