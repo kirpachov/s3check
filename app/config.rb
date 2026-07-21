@@ -9,6 +9,7 @@ CONFIG_FILE = 'config/app.yml'
 
 Config = configatron
 Config.root = File.absolute_path(File.expand_path('..', __dir__))
+Config.pid_file_path = "tmp/run.pid"
 
 def deep_merge_hash(base_hash, override_hash)
   base_hash.merge(override_hash) do |_key, base_value, override_value|
@@ -30,6 +31,85 @@ def load_config!
   if File.exist?(custom_file_path)
     custom_config = YAML.load_file(custom_file_path) || {}
     merged_config = deep_merge_hash(merged_config, custom_config)
+  end
+end
+
+# #######################
+# Options management
+# #######################
+opts = GetoptLong.new(
+  ['--debug',            GetoptLong::NO_ARGUMENT],
+  ['--help',       '-h', GetoptLong::NO_ARGUMENT],
+  # ['--file',            GetoptLong::REQUIRED_ARGUMENT],
+  # ["--query-key",       GetoptLong::REQUIRED_ARGUMENT],
+  # ["--output-file",     GetoptLong::REQUIRED_ARGUMENT],
+)
+
+USAGE_OPTIONS = [
+  {
+    option: '--debug',
+    desc:
+    <<~DOC.strip.split("\n")
+      Avvia lo scrapping in modalità debug.
+
+      Usage:
+      ruby #{$PROGRAM_NAME} -v
+    DOC
+  },
+  {
+    option: '-h, --help',
+    desc:
+    <<~DOC.strip.split("\n")
+      Visualizza questo messaggio di aiuto.
+
+      ruby #{$PROGRAM_NAME} -h
+    DOC
+  },
+  # {
+  #   option: '--file',
+  #   desc:
+  #   <<~DOC.strip.split("\n")
+  #     File location
+
+  #     Usage:
+  #     ruby #{$PROGRAM_NAME} <command> --file /path/to/file
+
+  #     Example:
+  #     ruby run.rb import-query --file spec/fixtures/query-frantoi-italia.txt
+  #   DOC
+  # },
+  # {
+  #   option: '--query-key, --query-keys',
+  #   desc:
+  #   <<~DOC.strip.split("\n")
+  #     Query key to use for import of queries or export of places.
+
+  #     Usage:
+  #     ruby #{$PROGRAM_NAME} <command> --query-key <key>
+
+  #     Example:
+  #     ruby run.rb import-query --file spec/fixtures/query-frantoi-italia.txt --query-key=mario
+  #   DOC
+  # },
+  # {
+  #   option: "--output-file",
+  #   desc:
+  #   <<~DOC.strip.split("\n")
+  #     Specify output file for export.
+
+  #     Usage:
+  #     ruby #{$PROGRAM_NAME} <command> --output-file /path/to/output/file
+
+  #     Example:
+  #     ruby run.rb export --output-file mario.csv
+  #   DOC
+  # }
+]
+
+# Setting defaults.
+USAGE_OPTIONS.each do |option|
+  option[:option].split(',').each do |opt|
+    Config[opt.strip.delete_prefix('--').delete_prefix('-').tr('-', '_').to_sym] = nil
   end
 
   Config.configure_from_hash(merged_config)
@@ -126,14 +206,14 @@ USAGE_MESSAGE = <<~DOC
   ruby #{$PROGRAM_NAME} <command>
 
   Commands:
-  - help | -h            Mostra questo aiuto
-  - version | -v         Mostra versione
-  - console | c          Apre console Pry
-  - config-check | cc    Valida configurazione S3
-  - config-edit | ce     Apre config/app.yml nell'editor
-  - config-show | cs     Mostra configurazione effettiva (secret mascherata)
-  - run | start          Avvia checks (crea config/app.yml se manca)
-  - stop | halt          Ferma i checks
+     run               Start all checks. Will read configs and run all the checks.
+     stop              Stop running checks. Will send TERM signal to the running process.
+     config-check      TODO diego
+     config-edit       TODO diego
+     config-show       TODO diego
+     version           Show the current version of the application.
+     console           Start an interactive console for debugging and testing.
+
 DOC
 
 def print_help_message
@@ -141,3 +221,24 @@ def print_help_message
 end
 
 load_config!
+# opts.each do |opt, arg|
+#   case opt
+#   when '--debug'
+#     Config.debug = true
+#     puts 'Enabled debug mode'
+#   when '--file'
+#     Config.file = arg
+#   when '--help'
+#     print_help_message
+#     exit
+#   when '--query-key', '--query-keys'
+#     Config.query_key = arg
+#   when '--output-file', '--outfile', '-o'
+#     Config.output_file = arg
+#   end
+# end
+
+# # #######################
+# # Validating configurations
+# # #######################
+# raise 'Missing Google Places API Key' if Config.google_places_api_key.nil?

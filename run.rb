@@ -4,6 +4,7 @@
 require 'bundler'
 Bundler.require
 
+require_relative 'app/version'
 require_relative 'app/config'
 require_relative 'app/logger'
 require_relative 'app/database'
@@ -21,7 +22,7 @@ case ARGV[0]
 when 'console', "c"
   require 'pry'
   Pry.start
-when "version", "-v"
+when "version"
   puts "Version: #{VERSION}"
 when "help", "-h"
   print_help_message
@@ -49,6 +50,9 @@ when "stop", "halt"
 #   Exporter.run!
 # when "watcher", "monitor"
 #   Watcher.run!
+  RunAllChecks.run!
+when "stop", "halt", "cancel"
+  CancelRunningChecks.run!
 else
   puts "Invalid command: #{ARGV[0].inspect}"
   print_help_message
