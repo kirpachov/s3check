@@ -208,9 +208,9 @@ USAGE_MESSAGE = <<~DOC
   Commands:
      run               Start all checks. Will read configs and run all the checks.
      stop              Stop running checks. Will send TERM signal to the running process.
-     config-check      TODO diego
-     config-edit       TODO diego
-     config-show       TODO diego
+     config-check      Check the validity of the configuration. Will check if all required configs are present.
+     config-edit       Edit the configuration file. Will open the config file in the default editor.
+     config-show       Show the current configuration. Will display the current configuration values.
      version           Show the current version of the application.
      console           Start an interactive console for debugging and testing.
 
