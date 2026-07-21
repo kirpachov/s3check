@@ -219,21 +219,9 @@ def create_configuration_file_if_not_exists
   print 'S3 region (e.g. eu-west-1): '
   region = STDIN.gets&.chomp.to_s
 
-  print 'S3 bucket: '
-  bucket = STDIN.gets&.chomp.to_s
-
-  print 'S3 endpoint (optional, press Enter for AWS default): '
-  endpoint = STDIN.gets&.chomp.to_s
-
-  print 'S3 backup prefix (optional, e.g. backups/daily): '
-  backup_prefix = STDIN.gets&.chomp.to_s
-
   config_to_write = {
     's3' => {
-      'region' => region,
-      'bucket' => bucket,
-      'endpoint' => endpoint,
-      'backup_prefix' => backup_prefix
+      'region' => region
     }
   }
 
@@ -259,7 +247,6 @@ def check_config_validity
   missing_keys << 'ENV.S3_ACCESS_KEY' if s3_access_key_id.empty?
   missing_keys << 'ENV.S3_SECRET_KEY' if s3_secret_access_key.empty?
   missing_keys << 's3.region' if s3&.region.to_s.strip.empty?
-  missing_keys << 's3.bucket' if s3&.bucket.to_s.strip.empty?
 
   if missing_keys.any?
     puts "Invalid configuration. Missing fields: #{missing_keys.join(', ')}"
@@ -293,9 +280,6 @@ def show_current_config
   puts "    S3_SECRET_KEY: #{has_secret_access_key ? 'present' : 'missing'}"
   puts '- s3:'
   puts "    region: #{s3&.region}"
-  puts "    bucket: #{s3&.bucket}"
-  puts "    endpoint: #{s3&.endpoint}"
-  puts "    backup_prefix: #{s3&.backup_prefix}"
 end
 
 USAGE_MESSAGE = <<~DOC
