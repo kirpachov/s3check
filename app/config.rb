@@ -32,6 +32,8 @@ def load_config!
     custom_config = YAML.load_file(custom_file_path) || {}
     merged_config = deep_merge_hash(merged_config, custom_config)
   end
+
+  Config.configure_from_hash(merged_config)
 end
 
 # #######################
@@ -111,8 +113,6 @@ USAGE_OPTIONS.each do |option|
   option[:option].split(',').each do |opt|
     Config[opt.strip.delete_prefix('--').delete_prefix('-').tr('-', '_').to_sym] = nil
   end
-
-  Config.configure_from_hash(merged_config)
 end
 
 def config_file_exists?
