@@ -11,6 +11,7 @@ CONFIG_FILE = 'config/app.yml'
 
 Config = configatron
 Config.root = File.absolute_path(File.expand_path('..', __dir__))
+Config.pid_file_path = "tmp/run.pid"
 
 configs_hash = YAML.load_file(File.join(Config.root, DEFAULT_CONFIG_FILE))
 if File.exist?(File.join(Config.root, CONFIG_FILE))
@@ -35,9 +36,9 @@ FARADAY_RETRY_OPTIONS = {
 opts = GetoptLong.new(
   ['--debug',            GetoptLong::NO_ARGUMENT],
   ['--help',       '-h', GetoptLong::NO_ARGUMENT],
-  ['--file',            GetoptLong::REQUIRED_ARGUMENT],
-  ["--query-key",       GetoptLong::REQUIRED_ARGUMENT],
-  ["--output-file",     GetoptLong::REQUIRED_ARGUMENT],
+  # ['--file',            GetoptLong::REQUIRED_ARGUMENT],
+  # ["--query-key",       GetoptLong::REQUIRED_ARGUMENT],
+  # ["--output-file",     GetoptLong::REQUIRED_ARGUMENT],
 )
 
 USAGE_OPTIONS = [
@@ -60,45 +61,45 @@ USAGE_OPTIONS = [
       ruby #{$PROGRAM_NAME} -h
     DOC
   },
-  {
-    option: '--file',
-    desc:
-    <<~DOC.strip.split("\n")
-      File location
+  # {
+  #   option: '--file',
+  #   desc:
+  #   <<~DOC.strip.split("\n")
+  #     File location
 
-      Usage:
-      ruby #{$PROGRAM_NAME} <command> --file /path/to/file
+  #     Usage:
+  #     ruby #{$PROGRAM_NAME} <command> --file /path/to/file
 
-      Example:
-      ruby run.rb import-query --file spec/fixtures/query-frantoi-italia.txt
-    DOC
-  },
-  {
-    option: '--query-key, --query-keys',
-    desc:
-    <<~DOC.strip.split("\n")
-      Query key to use for import of queries or export of places.
+  #     Example:
+  #     ruby run.rb import-query --file spec/fixtures/query-frantoi-italia.txt
+  #   DOC
+  # },
+  # {
+  #   option: '--query-key, --query-keys',
+  #   desc:
+  #   <<~DOC.strip.split("\n")
+  #     Query key to use for import of queries or export of places.
 
-      Usage:
-      ruby #{$PROGRAM_NAME} <command> --query-key <key>
+  #     Usage:
+  #     ruby #{$PROGRAM_NAME} <command> --query-key <key>
 
-      Example:
-      ruby run.rb import-query --file spec/fixtures/query-frantoi-italia.txt --query-key=mario
-    DOC
-  },
-  {
-    option: "--output-file",
-    desc: 
-    <<~DOC.strip.split("\n")
-      Specify output file for export.
+  #     Example:
+  #     ruby run.rb import-query --file spec/fixtures/query-frantoi-italia.txt --query-key=mario
+  #   DOC
+  # },
+  # {
+  #   option: "--output-file",
+  #   desc:
+  #   <<~DOC.strip.split("\n")
+  #     Specify output file for export.
 
-      Usage:
-      ruby #{$PROGRAM_NAME} <command> --output-file /path/to/output/file
+  #     Usage:
+  #     ruby #{$PROGRAM_NAME} <command> --output-file /path/to/output/file
 
-      Example:
-      ruby run.rb export --output-file mario.csv
-    DOC
-  }
+  #     Example:
+  #     ruby run.rb export --output-file mario.csv
+  #   DOC
+  # }
 ]
 
 # Setting defaults.
@@ -114,11 +115,13 @@ USAGE_MESSAGE = <<~DOC
   ruby #{$PROGRAM_NAME} <command> [options]
 
   Commands:
-  - import-queries: Import queries from file. Specify file with --file and --query-key options.
-  - finder: Start Finder worker. Will process queries and create blank places.
-  - processor: Start Processor worker. Will process places and update them with data.
-  - console: Start interactive console
-  - watcher: Will fix any broken records and log status.
+     run               Start all checks. Will read configs and run all the checks.
+     stop              Stop running checks. Will send TERM signal to the running process.
+     config-check      TODO diego
+     config-edit       TODO diego
+     config-show       TODO diego
+     version           Show the current version of the application.
+     console           Start an interactive console for debugging and testing.
 
 DOC
 
