@@ -1,0 +1,7 @@
+checks:
+  - name: "Verifica che cartella non sia vuota"
+    bucket: "test-s3check"
+    check:
+      - type: "folder_not_empty"
+        params:
+          folder_path: "not_empty_folder/"

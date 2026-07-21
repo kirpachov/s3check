@@ -6,6 +6,8 @@ require 'yaml'
 
 DEFAULT_CONFIG_FILE = 'config/app.example.yml'
 CONFIG_FILE = 'config/app.yml'
+DEFAULT_CHECKS_FILE = 'config/checks.example.yml'
+CHECKS_FILE = 'config/checks.yml'
 ENV_FILE = '.env'
 DEFAULT_ENV_FILE = '.env.example'
 
@@ -121,6 +123,18 @@ def config_file_exists?
   File.exist?(File.join(Config.root, CONFIG_FILE))
 end
 
+def checks_file_path
+  File.join(Config.root, CHECKS_FILE)
+end
+
+def default_checks_file_path
+  File.join(Config.root, DEFAULT_CHECKS_FILE)
+end
+
+def checks_file_exists?
+  File.exist?(checks_file_path)
+end
+
 def env_file_path
   File.join(Config.root, ENV_FILE)
 end
@@ -157,6 +171,39 @@ def open_env_file_in_editor
   ensure_env_file_exists
   system(editor_command, env_file_path)
   reload_env!
+end
+
+def ensure_checks_file_exists
+  return if checks_file_exists?
+
+  if File.exist?(default_checks_file_path)
+    File.write(checks_file_path, File.read(default_checks_file_path))
+    return
+  end
+
+  File.open(checks_file_path, 'w') do |file|
+    file.write({
+      'checks' => [
+        {
+          'name' => 'Example check',
+          'bucket' => '',
+          'check' => [
+            {
+              'type' => 'folder_not_empty',
+              'params' => {
+                'folder_path' => ''
+              }
+            }
+          ]
+        }
+      ]
+    }.to_yaml)
+  end
+end
+
+def open_checks_file_in_editor
+  ensure_checks_file_exists
+  system(editor_command, checks_file_path)
 end
 
 def reload_env!
@@ -197,6 +244,8 @@ def create_configuration_file_if_not_exists
   load_config!
   puts "Now set S3 keys in #{ENV_FILE}."
   open_env_file_in_editor
+  puts "Now configure checks in #{CHECKS_FILE}."
+  open_checks_file_in_editor
   puts "Setup completed: created #{CONFIG_FILE}."
 end
 
@@ -224,6 +273,7 @@ def edit_config_file
   create_configuration_file_if_not_exists
   system(editor_command, File.join(Config.root, CONFIG_FILE))
   open_env_file_in_editor
+  open_checks_file_in_editor
 end
 
 def show_current_config
@@ -235,6 +285,8 @@ def show_current_config
   puts 'Current configuration:'
   puts "- file default: #{DEFAULT_CONFIG_FILE}"
   puts "- file custom:  #{CONFIG_FILE}#{config_file_exists? ? '' : ' (not present)'}"
+  puts "- checks template: #{DEFAULT_CHECKS_FILE}#{File.exist?(default_checks_file_path) ? '' : ' (not present)'}"
+  puts "- checks file: #{CHECKS_FILE}#{checks_file_exists? ? '' : ' (not present)'}"
   puts "- env template: #{DEFAULT_ENV_FILE}#{File.exist?(default_env_file_path) ? '' : ' (not present)'}"
   puts '- env (.env):'
   puts "    S3_ACCESS_KEY: #{has_access_key_id ? 'present' : 'missing'}"

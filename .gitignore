@@ -1,3 +1,4 @@
 .env
 tmp
 config/app.yml
+config/checks.yml
