@@ -26,15 +26,16 @@ when "version", "-v"
 when "help", "-h"
   print_help_message
 when "config-check", "cc"
-  puts "TODO: Read configs and check if they are valid."
+  check_config_validity
 when "config-edit", "ce"
-  puts "TODO: Open config file in editor."
+  edit_config_file
 when "config-show", "cs"
-  puts "TODO: Show current configuration."
+  show_current_config
 when "run", "start"
-  # here, do save running pid somewhere so it can be stopped later.
-  # also, before running, check if there is already a running process and if so, exit with error.
-  puts "TODO: Run all the checks and save run result somewhere."
+  create_configuration_file_if_not_exists
+  check_config_validity
+  # TODO: Implementare la logica per eseguire i controlli e salvare i risultati.
+  # start checks and save results in logfiles and print to console
 when "stop", "halt"
   puts "TODO: Stop the running checks."
 # when 'finder'

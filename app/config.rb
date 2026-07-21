@@ -88,7 +88,7 @@ USAGE_OPTIONS = [
   },
   {
     option: "--output-file",
-    desc: 
+    desc:
     <<~DOC.strip.split("\n")
       Specify output file for export.
 
@@ -151,4 +151,62 @@ end
 # #######################
 # Validating configurations
 # #######################
-raise 'Missing Google Places API Key' if Config.google_places_api_key.nil?
+
+# Configurazione per la connessione a S3
+S3_CONFIG = {
+  access_key_id: ENV['S3_ACCESS_KEY_ID'],
+  secret_access_key: ENV['S3_SECRET_ACCESS_KEY'],
+  region: ENV['S3_REGION'],
+  bucket: ENV['S3_BUCKET']
+}
+
+# Funzione per controllare la validità della configurazione
+def check_config_validity
+  required_keys = S3_CONFIG.keys
+  missing_keys = required_keys.select { |key| S3_CONFIG[key].nil? }
+  if missing_keys.any?
+    puts "Configurazione mancante per: #{missing_keys.join(', ')}"
+    exit 1
+  else
+    puts "Configurazione S3 valida."
+  end
+end
+
+# Funzione per modificare il file di configurazione
+
+def edit_config_file
+  # Logica per aprire il file di configurazione in un editor
+  system("nano config/app.example.yml")
+end
+
+# Funzione per mostrare la configurazione attuale
+
+def show_current_config
+  puts "Configurazione attuale:"
+  puts S3_CONFIG.inspect
+end
+
+def create_configuration_file_if_not_exists
+  # Controlla se il file di configurazione esiste
+  unless File.exist?(File.join(Config.root, 'config/app.yml'))
+    puts "File di configurazione non trovato. Creazione di un nuovo file..."
+    puts "Inserisci le credenziali S3:"
+    print "Access Key ID: "
+    access_key_id = gets.chomp
+    print "Secret Access Key: "
+    secret_access_key = gets.chomp
+    print "Region: "
+    region = gets.chomp
+    print "Bucket: "
+    bucket = gets.chomp
+
+    # Crea il file di configurazione
+    File.open(File.join(Config.root, 'config/app.yml'), 'w') do |file|
+      file.write("access_key_id: \\#{access_key_id}\n")
+      file.write("secret_access_key: \\#{secret_access_key}\n")
+      file.write("region: \\#{region}\n")
+      file.write("bucket: \\#{bucket}\n")
+    end
+    puts "File di configurazione creato con successo."
+  end
+end
