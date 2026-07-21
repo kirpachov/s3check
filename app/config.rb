@@ -41,7 +41,7 @@ def load_config!
 end
 
 Aws.config.update(
-  region: 'eu-west-1',
+  region: Config.s3&.region,
   credentials: Aws::Credentials.new(ENV['S3_ACCESS_KEY'], ENV['S3_SECRET_KEY'])
 )
 
