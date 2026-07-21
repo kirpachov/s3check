@@ -10,14 +10,15 @@ class RunAllChecks < ActiveInteraction::Base
       File.delete(Config.pid_file_path) if File.exist?(Config.pid_file_path)
     end
 
-    puts "TODO read configs, and for each config, run the checks."
+    s3_resource = Aws::S3::Resource.new
+    # ok, will pass.
+    Check::FolderNotEmpty.run!(folder_path: "not_empty_folder/", bucket: s3_resource.bucket("test-s3check"))
 
-    sleep 5
-    i = 0
-    while true
-      puts "Running checks... #{i += 1}"
-      sleep 5
-    end
+    # won't pass since folder is empty (but exists)
+    # Check::FolderNotEmpty.run!(folder_path: "empty_folder/", bucket: s3_resource.bucket("test-s3check"))
+
+    # won't pass since folder doesn't exist
+    # Check::FolderNotEmpty.run!(folder_path: "non_existent_folder/", bucket: s3_resource.bucket("test-s3check"))
   end
 
   private

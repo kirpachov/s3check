@@ -4,7 +4,7 @@ require 'configatron'
 require 'getoptlong'
 require 'yaml'
 require 'dotenv/load'
-
+require 'aws-sdk-core'
 
 DEFAULT_CONFIG_FILE = 'config/app.example.yml'
 CONFIG_FILE = 'config/app.yml'
@@ -21,6 +21,11 @@ end
 Config.configure_from_hash(configs_hash)
 
 Config.google_places_api_key = ENV['GOOGLE_PLACES_API_KEY'] if ENV['GOOGLE_PLACES_API_KEY'].present?
+
+Aws.config.update(
+  region: 'eu-west-1',
+  credentials: Aws::Credentials.new(ENV['S3_ACCESS_KEY'], ENV['S3_SECRET_KEY'])
+)
 
 FARADAY_RETRY_OPTIONS = {
   max: 2,

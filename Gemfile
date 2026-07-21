@@ -33,3 +33,9 @@ gem 'sequel_pg', require: false
 # gem 'thor'
 # gem 'faraday-retry'
 # gem 'ztimer', '~> 0.6.0'
+
+
+gem 'aws-sdk-s3'
+gem 'aws-sdk-ec2'
+
+gem "nokogiri"
