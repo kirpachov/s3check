@@ -156,12 +156,12 @@ end
 
 def check_config_validity
   s3 = Config.s3
-  s3_access_key_id = ENV['S3_ACCESS_KEY_ID'].to_s.strip
-  s3_secret_access_key = ENV['S3_SECRET_ACCESS_KEY'].to_s.strip
+  s3_access_key_id = ENV['S3_ACCESS_KEY'].to_s.strip
+  s3_secret_access_key = ENV['S3_SECRET_KEY'].to_s.strip
 
   missing_keys = []
-  missing_keys << 'ENV.S3_ACCESS_KEY_ID' if s3_access_key_id.empty?
-  missing_keys << 'ENV.S3_SECRET_ACCESS_KEY' if s3_secret_access_key.empty?
+  missing_keys << 'ENV.S3_ACCESS_KEY' if s3_access_key_id.empty?
+  missing_keys << 'ENV.S3_SECRET_KEY' if s3_secret_access_key.empty?
   missing_keys << 's3.region' if s3&.region.to_s.strip.empty?
   missing_keys << 's3.bucket' if s3&.bucket.to_s.strip.empty?
 
@@ -184,8 +184,8 @@ end
 
 def show_current_config
   s3 = Config.s3
-  has_access_key_id = !ENV['S3_ACCESS_KEY_ID'].to_s.strip.empty?
-  has_secret_access_key = !ENV['S3_SECRET_ACCESS_KEY'].to_s.strip.empty?
+  has_access_key_id = !ENV['S3_ACCESS_KEY '].to_s.strip.empty?
+  has_secret_access_key = !ENV['S3_SECRET_KEY'].to_s.strip.empty?
 
   puts 'Current configuration:'
   puts "- file default: #{DEFAULT_CONFIG_FILE}"
