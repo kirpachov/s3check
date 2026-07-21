@@ -31,3 +31,9 @@ gem 'sequel_pg', require: false
 # gem 'terminal-table', '~> 3.0.2'
 # gem 'thor'
 # gem 'ztimer', '~> 0.6.0'
+
+
+gem 'aws-sdk-s3'
+gem 'aws-sdk-ec2'
+
+gem "nokogiri"

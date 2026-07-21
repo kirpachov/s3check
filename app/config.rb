@@ -3,6 +3,7 @@
 require 'configatron'
 require 'dotenv/load'
 require 'yaml'
+require 'aws-sdk-core'
 
 DEFAULT_CONFIG_FILE = 'config/app.example.yml'
 CONFIG_FILE = 'config/app.yml'
@@ -36,9 +37,13 @@ def load_config!
     custom_config = YAML.load_file(custom_file_path) || {}
     merged_config = deep_merge_hash(merged_config, custom_config)
   end
-
   Config.configure_from_hash(merged_config)
 end
+
+Aws.config.update(
+  region: 'eu-west-1',
+  credentials: Aws::Credentials.new(ENV['S3_ACCESS_KEY'], ENV['S3_SECRET_KEY'])
+)
 
 # #######################
 # Options management
