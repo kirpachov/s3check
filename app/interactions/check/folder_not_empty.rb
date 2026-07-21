@@ -7,6 +7,13 @@ module Check
     interface :bucket, methods: [:objects]
 
     def execute
+      # compose(
+      #   NumberOfFiles,
+      #   files: "#{folder_path}/*",
+      #   min: 1,
+      #   bucket: bucket
+      # )
+
       # Do complete when: we find a file in the folder or we find the folder and the next element belongs to another folder (meaning the folder is empty)
       bucket.objects.each_with_index do |obj, i|
         if obj.key.start_with?(folder_path) && obj.key != folder_path

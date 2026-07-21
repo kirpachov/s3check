@@ -48,4 +48,3 @@ DB_LOGGER.formatter = proc do |severity, datetime, progname, msg|
   "[#{datetime.strftime('%F %T.%L')}]".color(:cyan) + "(#{$$})".color(:blue) + "|#{severity}|".color(get_severity_color(severity)) +
   (progname ? "<#{progname}>".color(:yellow) : "")  + " #{msg.color(:magenta)}\n"
 end
-
