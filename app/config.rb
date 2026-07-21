@@ -184,15 +184,15 @@ end
 
 def show_current_config
   s3 = Config.s3
-  has_access_key_id = !ENV['S3_ACCESS_KEY '].to_s.strip.empty?
+  has_access_key_id = !ENV['S3_ACCESS_KEY'].to_s.strip.empty?
   has_secret_access_key = !ENV['S3_SECRET_KEY'].to_s.strip.empty?
 
   puts 'Current configuration:'
   puts "- file default: #{DEFAULT_CONFIG_FILE}"
   puts "- file custom:  #{CONFIG_FILE}#{config_file_exists? ? '' : ' (not present)'}"
   puts '- env (.env):'
-  puts "    S3_ACCESS_KEY_ID: #{has_access_key_id ? 'present' : 'missing'}"
-  puts "    S3_SECRET_ACCESS_KEY: #{has_secret_access_key ? 'present' : 'missing'}"
+  puts "    S3_ACCESS_KEY: #{has_access_key_id ? 'present' : 'missing'}"
+  puts "    S3_SECRET_KEY: #{has_secret_access_key ? 'present' : 'missing'}"
   puts '- s3:'
   puts "    region: #{s3&.region}"
   puts "    bucket: #{s3&.bucket}"
