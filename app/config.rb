@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'configatron'
+require 'dotenv/load'
 require 'yaml'
 
 DEFAULT_CONFIG_FILE = 'config/app.example.yml'
@@ -44,12 +45,6 @@ def create_configuration_file_if_not_exists
   puts "Configurazione non trovata (#{CONFIG_FILE})."
   puts 'Avvio installazione guidata per Amazon S3...'
 
-  print 'S3 access_key_id: '
-  access_key_id = STDIN.gets&.chomp.to_s
-
-  print 'S3 secret_access_key: '
-  secret_access_key = STDIN.gets&.chomp.to_s
-
   print 'S3 region (es. eu-west-1): '
   region = STDIN.gets&.chomp.to_s
 
@@ -64,8 +59,6 @@ def create_configuration_file_if_not_exists
 
   config_to_write = {
     's3' => {
-      'access_key_id' => access_key_id,
-      'secret_access_key' => secret_access_key,
       'region' => region,
       'bucket' => bucket,
       'endpoint' => endpoint,
@@ -83,10 +76,12 @@ end
 
 def check_config_validity
   s3 = Config.s3
+  s3_access_key_id = ENV['S3_ACCESS_KEY_ID'].to_s.strip
+  s3_secret_access_key = ENV['S3_SECRET_ACCESS_KEY'].to_s.strip
 
   missing_keys = []
-  missing_keys << 's3.access_key_id' if s3&.access_key_id.to_s.strip.empty?
-  missing_keys << 's3.secret_access_key' if s3&.secret_access_key.to_s.strip.empty?
+  missing_keys << 'ENV.S3_ACCESS_KEY_ID' if s3_access_key_id.empty?
+  missing_keys << 'ENV.S3_SECRET_ACCESS_KEY' if s3_secret_access_key.empty?
   missing_keys << 's3.region' if s3&.region.to_s.strip.empty?
   missing_keys << 's3.bucket' if s3&.bucket.to_s.strip.empty?
 
@@ -109,14 +104,16 @@ end
 
 def show_current_config
   s3 = Config.s3
-  masked_secret = s3&.secret_access_key.to_s.empty? ? '' : '******'
+  has_access_key_id = !ENV['S3_ACCESS_KEY_ID'].to_s.strip.empty?
+  has_secret_access_key = !ENV['S3_SECRET_ACCESS_KEY'].to_s.strip.empty?
 
   puts 'Configurazione in uso:'
   puts "- file default: #{DEFAULT_CONFIG_FILE}"
   puts "- file custom:  #{CONFIG_FILE}#{config_file_exists? ? '' : ' (non presente)'}"
+  puts '- env (.env):'
+  puts "    S3_ACCESS_KEY_ID: #{has_access_key_id ? 'presente' : 'mancante'}"
+  puts "    S3_SECRET_ACCESS_KEY: #{has_secret_access_key ? 'presente' : 'mancante'}"
   puts '- s3:'
-  puts "    access_key_id: #{s3&.access_key_id}"
-  puts "    secret_access_key: #{masked_secret}"
   puts "    region: #{s3&.region}"
   puts "    bucket: #{s3&.bucket}"
   puts "    endpoint: #{s3&.endpoint}"
