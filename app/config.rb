@@ -23,7 +23,7 @@ end
 
 def load_config!
   default_file_path = File.join(Config.root, DEFAULT_CONFIG_FILE)
-  raise "File di default mancante: #{DEFAULT_CONFIG_FILE}" unless File.exist?(default_file_path)
+  raise "Missing default config file: #{DEFAULT_CONFIG_FILE}" unless File.exist?(default_file_path)
 
   merged_config = YAML.load_file(default_file_path) || {}
 
@@ -52,7 +52,7 @@ USAGE_OPTIONS = [
     option: '--debug',
     desc:
     <<~DOC.strip.split("\n")
-      Avvia lo scrapping in modalità debug.
+      Start scraping in debug mode.
 
       Usage:
       ruby #{$PROGRAM_NAME} -v
@@ -62,7 +62,7 @@ USAGE_OPTIONS = [
     option: '-h, --help',
     desc:
     <<~DOC.strip.split("\n")
-      Visualizza questo messaggio di aiuto.
+      Show this help message.
 
       ruby #{$PROGRAM_NAME} -h
     DOC
@@ -122,19 +122,19 @@ end
 def create_configuration_file_if_not_exists
   return if config_file_exists?
 
-  puts "Configurazione non trovata (#{CONFIG_FILE})."
-  puts 'Avvio installazione guidata per Amazon S3...'
+  puts "Configuration not found (#{CONFIG_FILE})."
+  puts 'Starting guided setup for Amazon S3...'
 
-  print 'S3 region (es. eu-west-1): '
+  print 'S3 region (e.g. eu-west-1): '
   region = STDIN.gets&.chomp.to_s
 
   print 'S3 bucket: '
   bucket = STDIN.gets&.chomp.to_s
 
-  print 'S3 endpoint (opzionale, invio per default AWS): '
+  print 'S3 endpoint (optional, press Enter for AWS default): '
   endpoint = STDIN.gets&.chomp.to_s
 
-  print 'S3 prefix backup (opzionale, es. backups/daily): '
+  print 'S3 backup prefix (optional, e.g. backups/daily): '
   backup_prefix = STDIN.gets&.chomp.to_s
 
   config_to_write = {
@@ -151,7 +151,7 @@ def create_configuration_file_if_not_exists
   end
 
   load_config!
-  puts "Installazione completata: creato #{CONFIG_FILE}."
+  puts "Setup completed: created #{CONFIG_FILE}."
 end
 
 def check_config_validity
@@ -166,11 +166,11 @@ def check_config_validity
   missing_keys << 's3.bucket' if s3&.bucket.to_s.strip.empty?
 
   if missing_keys.any?
-    puts "Configurazione non valida. Campi mancanti: #{missing_keys.join(', ')}"
+    puts "Invalid configuration. Missing fields: #{missing_keys.join(', ')}"
     exit 1
   end
 
-  puts 'Configurazione S3 valida.'
+  puts 'S3 configuration is valid.'
 end
 
 def edit_config_file
@@ -187,12 +187,12 @@ def show_current_config
   has_access_key_id = !ENV['S3_ACCESS_KEY_ID'].to_s.strip.empty?
   has_secret_access_key = !ENV['S3_SECRET_ACCESS_KEY'].to_s.strip.empty?
 
-  puts 'Configurazione in uso:'
+  puts 'Current configuration:'
   puts "- file default: #{DEFAULT_CONFIG_FILE}"
-  puts "- file custom:  #{CONFIG_FILE}#{config_file_exists? ? '' : ' (non presente)'}"
+  puts "- file custom:  #{CONFIG_FILE}#{config_file_exists? ? '' : ' (not present)'}"
   puts '- env (.env):'
-  puts "    S3_ACCESS_KEY_ID: #{has_access_key_id ? 'presente' : 'mancante'}"
-  puts "    S3_SECRET_ACCESS_KEY: #{has_secret_access_key ? 'presente' : 'mancante'}"
+  puts "    S3_ACCESS_KEY_ID: #{has_access_key_id ? 'present' : 'missing'}"
+  puts "    S3_SECRET_ACCESS_KEY: #{has_secret_access_key ? 'present' : 'missing'}"
   puts '- s3:'
   puts "    region: #{s3&.region}"
   puts "    bucket: #{s3&.bucket}"
