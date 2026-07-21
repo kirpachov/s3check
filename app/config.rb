@@ -6,6 +6,8 @@ require 'yaml'
 
 DEFAULT_CONFIG_FILE = 'config/app.example.yml'
 CONFIG_FILE = 'config/app.yml'
+ENV_FILE = '.env'
+DEFAULT_ENV_FILE = '.env.example'
 
 Config = configatron
 Config.root = File.absolute_path(File.expand_path('..', __dir__))
@@ -119,6 +121,48 @@ def config_file_exists?
   File.exist?(File.join(Config.root, CONFIG_FILE))
 end
 
+def env_file_path
+  File.join(Config.root, ENV_FILE)
+end
+
+def default_env_file_path
+  File.join(Config.root, DEFAULT_ENV_FILE)
+end
+
+def env_file_exists?
+  File.exist?(env_file_path)
+end
+
+def editor_command
+  editor = ENV['EDITOR'].to_s.strip
+  editor.empty? ? 'nano' : editor
+end
+
+def ensure_env_file_exists
+  return if env_file_exists?
+
+  if File.exist?(default_env_file_path)
+    File.write(env_file_path, File.read(default_env_file_path))
+    return
+  end
+
+  File.open(env_file_path, 'w') do |file|
+    file.write("# Amazon S3 credentials\n")
+    file.write("S3_ACCESS_KEY=\n")
+    file.write("S3_SECRET_KEY=\n")
+  end
+end
+
+def open_env_file_in_editor
+  ensure_env_file_exists
+  system(editor_command, env_file_path)
+  reload_env!
+end
+
+def reload_env!
+  Dotenv.overload(env_file_path) if File.exist?(env_file_path)
+end
+
 def create_configuration_file_if_not_exists
   return if config_file_exists?
 
@@ -151,10 +195,13 @@ def create_configuration_file_if_not_exists
   end
 
   load_config!
+  puts "Now set S3 keys in #{ENV_FILE}."
+  open_env_file_in_editor
   puts "Setup completed: created #{CONFIG_FILE}."
 end
 
 def check_config_validity
+  reload_env!
   s3 = Config.s3
   s3_access_key_id = ENV['S3_ACCESS_KEY'].to_s.strip
   s3_secret_access_key = ENV['S3_SECRET_KEY'].to_s.strip
@@ -175,14 +222,12 @@ end
 
 def edit_config_file
   create_configuration_file_if_not_exists
-
-  editor = ENV['EDITOR'].to_s.strip
-  editor = 'nano' if editor.empty?
-
-  system(editor, File.join(Config.root, CONFIG_FILE))
+  system(editor_command, File.join(Config.root, CONFIG_FILE))
+  open_env_file_in_editor
 end
 
 def show_current_config
+  reload_env!
   s3 = Config.s3
   has_access_key_id = !ENV['S3_ACCESS_KEY'].to_s.strip.empty?
   has_secret_access_key = !ENV['S3_SECRET_KEY'].to_s.strip.empty?
@@ -190,6 +235,7 @@ def show_current_config
   puts 'Current configuration:'
   puts "- file default: #{DEFAULT_CONFIG_FILE}"
   puts "- file custom:  #{CONFIG_FILE}#{config_file_exists? ? '' : ' (not present)'}"
+  puts "- env template: #{DEFAULT_ENV_FILE}#{File.exist?(default_env_file_path) ? '' : ' (not present)'}"
   puts '- env (.env):'
   puts "    S3_ACCESS_KEY: #{has_access_key_id ? 'present' : 'missing'}"
   puts "    S3_SECRET_KEY: #{has_secret_access_key ? 'present' : 'missing'}"
