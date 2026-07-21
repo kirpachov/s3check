@@ -14,7 +14,6 @@ gem "getoptlong"
 gem "active_interaction"
 # gem 'caxlsx', '~> 3.2.0'
 # gem "commander"
-# gem "faraday"
 gem "dotenv"
 gem 'configatron'
 gem 'debug'
@@ -31,5 +30,4 @@ gem 'sequel'
 gem 'sequel_pg', require: false
 # gem 'terminal-table', '~> 3.0.2'
 # gem 'thor'
-# gem 'faraday-retry'
 # gem 'ztimer', '~> 0.6.0'

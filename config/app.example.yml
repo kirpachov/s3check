@@ -4,3 +4,11 @@ database:
   port: 5432
   user: s3check
   password: s3check
+
+s3:
+  access_key_id: ""
+  secret_access_key: ""
+  region: "eu-west-1"
+  bucket: ""
+  endpoint: ""
+  backup_prefix: ""
