@@ -21,6 +21,22 @@ case ARGV[0]
 when 'console', "c"
   require 'pry'
   Pry.start
+when "version", "-v"
+  puts "Version: #{VERSION}"
+when "help", "-h"
+  print_help_message
+when "config-check", "cc"
+  puts "TODO: Read configs and check if they are valid."
+when "config-edit", "ce"
+  puts "TODO: Open config file in editor."
+when "config-show", "cs"
+  puts "TODO: Show current configuration."
+when "run", "start"
+  # here, do save running pid somewhere so it can be stopped later.
+  # also, before running, check if there is already a running process and if so, exit with error.
+  puts "TODO: Run all the checks and save run result somewhere."
+when "stop", "halt"
+  puts "TODO: Stop the running checks."
 # when 'finder'
 #   # require_relative 'app/interactions/finder'
 #   Finder.run!
