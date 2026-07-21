@@ -3,6 +3,10 @@
 module Check
   class FilesNotEmpty < ActiveInteraction::Base
 
+    # TODO pattern matching tipo:
+    # - not_empty_folder/*.svg
+    # - not_empty_folder/cereali.svg
+    # - non_existent_folder/*.svg|non_existent_folder/*.png: all files inside the folder with .svg or .png extension
     string :files
     object :bucket, class: Aws::S3::Bucket
 
