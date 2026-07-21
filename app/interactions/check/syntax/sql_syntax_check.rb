@@ -25,17 +25,32 @@ module Check
 
       def execute
         # Read the file content from S3
-        file_content = file.get.body.read
 
         # Perform SQL syntax check
         begin
-          # Use a SQL parser or validator to check the syntax
-          # For example, you can use the 'pg_query' gem for PostgreSQL
-          # parsed_query = PgQuery.parse(file_content)
-          # If parsing is successful, the syntax is valid
+          validate_sql_file(file.get.body.read)
         rescue StandardError => e
           errors.add(:base, "SQL syntax error in file #{file.key}: #{e.message}")
         end
+      end
+
+      private
+
+      def validate_sql_file(sql)
+        require "pg_query"
+
+        return if sql.strip.empty?
+
+        PgQuery.parse(sql)
+
+        return true
+      rescue Errno::ENOENT
+        errors.add(:base, "File not found: #{file_path}")
+      rescue PgQuery::ParseError => e
+        errors.add(:base, "SQL syntax error in file #{file.key}: #{e.message}")
+      rescue Encoding::InvalidByteSequenceError,
+            Encoding::UndefinedConversionError => e
+        errors.add(:base, "Encoding error in file #{file.key}: #{e.message}")
       end
     end
   end

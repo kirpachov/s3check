@@ -55,6 +55,12 @@ GEM
     drb (2.2.3)
     erb (6.0.6)
     getoptlong (0.2.1)
+    google-protobuf (4.35.1)
+      bigdecimal
+      rake (~> 13.3)
+    google-protobuf (4.35.1-x86_64-linux-gnu)
+      bigdecimal
+      rake (~> 13.3)
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
     io-console (0.8.2)
@@ -83,6 +89,8 @@ GEM
     ostruct (0.6.3)
     pg (1.6.3)
     pg (1.6.3-x86_64-linux)
+    pg_query (6.2.2)
+      google-protobuf (>= 3.25.3)
     pp (0.6.4)
       prettyprint
     prettyprint (0.2.0)
@@ -93,6 +101,7 @@ GEM
       reline (>= 0.6.0)
     racc (1.8.1)
     rainbow (3.1.1)
+    rake (13.4.2)
     rbs (4.0.3)
       logger
       prism (>= 1.6.0)
@@ -133,6 +142,7 @@ DEPENDENCIES
   oj
   optparse
   pg
+  pg_query
   pry
   rainbow
   sequel

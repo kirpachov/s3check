@@ -22,18 +22,36 @@ module Check
       #  @key="not_empty_folder/cereali.svg",
       #  @waiter_block_warned=false>
 
-
       def execute
-        # Read the file content from S3
-        file_content = file.get.body.read
+        valid_svg?(file.get.body.read)
+      end
 
-        # Perform SVG syntax check
+      private
+
+      def valid_svg?(content)
         begin
-          # Use an SVG parser or validator to check the syntax
-          # For example, you can use the 'nokogiri' gem
-          # doc = Nokogiri::XML(file_content) { |config| config.strict }
-          # If parsing is successful, the syntax is valid
-        rescue StandardError => e
+          require "nokogiri"
+
+            document = Nokogiri::XML(content) do |config|
+              config.strict
+                    .nonet
+            end
+
+            root = document.root
+
+            return false unless root
+            return false unless root.name == "svg"
+
+            valid_namespaces = [
+              nil,
+              "",
+              "http://www.w3.org/2000/svg"
+            ]
+
+            return false unless valid_namespaces.include?(root.namespace&.href)
+
+            true
+        rescue Nokogiri::XML::SyntaxError, Errno::ENOENT, Encoding::InvalidByteSequenceError => e
           errors.add(:base, "SVG syntax error in file #{file.key}: #{e.message}")
         end
       end

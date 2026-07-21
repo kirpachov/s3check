@@ -115,11 +115,15 @@ class RunAllChecks < ActiveInteraction::Base
     Check::SyntaxCheckFiles.run!(files: "not_empty_folder/cereali.svg", bucket: s3_resource.bucket("test-s3check"))
     Check::SyntaxCheckFiles.run!(files: "not_empty_folder/gigi.svg", bucket: s3_resource.bucket("test-s3check"))
     Check::SyntaxCheckFiles.run!(files: "not_empty_folder/*.svg", bucket: s3_resource.bucket("test-s3check"))
-    Check::SyntaxCheckFiles.run!(files: "sql/*.sql", bucket: s3_resource.bucket("test-s3check"))
 
     # Will fail:
     # Check::SyntaxCheckFiles.run!(files: "sql/cereali.sql", bucket: s3_resource.bucket("test-s3check"))
+    # Check::SyntaxCheckFiles.run!(files: "sql/*.sql", bucket: s3_resource.bucket("test-s3check"))
     # Check::SyntaxCheckFiles.run!(files: "sql/*", bucket: s3_resource.bucket("test-s3check"))
+
+    # ###############################################
+    # Check SHA512 matching for a file
+    # ###############################################
   end
 
   private
