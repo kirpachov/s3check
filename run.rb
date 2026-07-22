@@ -35,10 +35,7 @@ when "config-show", "cs"
 when "run", "start"
   create_configuration_file_if_not_exists
   check_config_validity
-  # TODO: Implementare la logica per eseguire i controlli e salvare i risultati.
-  # start checks and save results in logfiles and print to console
-when "stop", "halt"
-  puts "TODO: Stop the running checks."
+  RunAllChecks.run!
 # when 'finder'
 #   # require_relative 'app/interactions/finder'
 #   Finder.run!
@@ -50,7 +47,6 @@ when "stop", "halt"
 #   Exporter.run!
 # when "watcher", "monitor"
 #   Watcher.run!
-  RunAllChecks.run!
 when "stop", "halt", "cancel"
   CancelRunningChecks.run!
 else

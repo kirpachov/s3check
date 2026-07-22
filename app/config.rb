@@ -165,16 +165,29 @@ def required_paths_from_template(example_hash)
   template_check = Array(template_group['check']).first
   if template_check.is_a?(Hash)
     paths << ['check', '[]', 'type'] if template_check.key?('type')
-
-    template_params = template_check['params']
-    if template_params.is_a?(Hash)
-      template_params.keys.each do |param_key|
-        paths << ['check', '[]', 'params', param_key]
-      end
-    end
+    paths << ['check', '[]', 'params'] if template_check.key?('params')
   end
 
   paths
+end
+
+def required_params_for_type(type)
+  case type
+  when 'folder_not_empty'
+    ['folder_path']
+  when 'files_not_empty'
+    ['files']
+  when 'files_contain'
+    ['files', 'content']
+  when 'files_count'
+    ['files']
+  when 'files_size'
+    ['files']
+  when 'syntax_check_files'
+    ['files']
+  else
+    []
+  end
 end
 
 def value_present_for_path?(source_hash, path)
@@ -308,6 +321,9 @@ def check_config_validity
   validation_errors << 'ENV.S3_ACCESS_KEY is missing' if s3_access_key_id.empty?
   validation_errors << 'ENV.S3_SECRET_KEY is missing' if s3_secret_access_key.empty?
   validation_errors << 's3.region is missing' if s3&.region.to_s.strip.empty?
+  if s3&.region.to_s.strip.present? && !s3.region.to_s.match?(/\A[a-z]{2}-[a-z]+-\d+\z/)
+    validation_errors << "s3.region '#{s3.region}' is not valid (example: eu-west-1)"
+  end
 
   unless checks_file_exists?
     validation_errors << "#{CHECKS_FILE} is missing"
@@ -348,6 +364,22 @@ def check_config_validity
           next if available_check_types.include?(type)
 
           validation_errors << "#{CHECKS_FILE}: checks[#{index}].check[#{check_index}].type '#{type}' is not valid. Allowed: #{available_check_types.join(', ')}"
+
+          next
+        end
+
+        Array(check_group['check']).each_with_index do |single_check, check_index|
+          next unless single_check.is_a?(Hash)
+
+          type = single_check['type'].to_s.strip
+          params = single_check['params']
+          next unless params.is_a?(Hash)
+
+          required_params_for_type(type).each do |param_key|
+            next unless params[param_key].to_s.strip.empty?
+
+            validation_errors << "#{CHECKS_FILE}: checks[#{index}].check[#{check_index}].params.#{param_key} is missing for type '#{type}'"
+          end
         end
       end
     end
