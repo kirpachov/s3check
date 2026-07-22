@@ -5,3 +5,43 @@ checks:
       - type: "folder_not_empty"
         params:
           folder_path: "not_empty_folder/"
+
+  - name: "Verifica che i file non siano vuoti"
+    bucket: "test-s3check"
+    check:
+      - type: "files_not_empty"
+        params:
+          files: "not_empty_folder/cereali.svg"
+
+  - name: "Verifica contenuto nei file"
+    bucket: "test-s3check"
+    check:
+      - type: "files_contain"
+        params:
+          files: "not_empty_folder/cereali.svg"
+          content: "<svg"
+
+  - name: "Verifica numero file"
+    bucket: "test-s3check"
+    check:
+      - type: "files_count"
+        params:
+          files: "not_empty_folder/*.svg"
+          min: 1
+          max: 10
+
+  - name: "Verifica dimensione file"
+    bucket: "test-s3check"
+    check:
+      - type: "files_size"
+        params:
+          files: "not_empty_folder/cereali.svg"
+          min: 100
+          max: 500000
+
+  - name: "Verifica sintassi file"
+    bucket: "test-s3check"
+    check:
+      - type: "syntax_check_files"
+        params:
+          files: "not_empty_folder/*.svg"
