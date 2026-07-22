@@ -37,3 +37,5 @@ gem 'aws-sdk-s3'
 gem 'aws-sdk-ec2'
 
 gem "nokogiri"
+
+gem "pg_query", require: false # will be required only when needed.
