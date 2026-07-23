@@ -342,7 +342,7 @@ def check_config_validity
     else
       required_paths = required_paths_from_template(checks_example_hash)
 
-      checks.each_with_index do |check_group, index|
+      checks&.each_with_index do |check_group, index|
         next unless check_group.is_a?(Hash)
         next if check_group['name'].to_s.strip.empty?
 
