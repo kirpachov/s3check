@@ -138,25 +138,29 @@ class RunAllChecks < ActiveInteraction::Base
     # # ###############################################
     # # Check SHA512 matching for a file
     # # ###############################################
+    # Will pass.
+    # Check::FileSha512Match.run!(files: "not_empty_folder/cereali.svg", expected_sha512: "575eccf7c752cec3ed24258685abbdc8066f903004b16794255bd46d69408b13c25a963c5edfc00f19eebf33b9281b6433300321e0e27bce457d617b3385b122", bucket: s3_resource.bucket("test-s3check"))
+    # Check::FileSha512Match.run!(files: "not_empty_folder/cerea*.svg", expected_sha512: "575eccf7c752cec3ed24258685abbdc8066f903004b16794255bd46d69408b13c25a963c5edfc00f19eebf33b9281b6433300321e0e27bce457d617b3385b122", bucket: s3_resource.bucket("test-s3check"))
+    # Check::FileSha512Match.run!(files: "not_empty_folder/gigi.svg", expected_sha512: "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e", bucket: s3_resource.bucket("test-s3check"))
 
+    # Will not pass:
+    # Check::FileSha512Match.run!(files: "not_empty_folder/*.svg", expected_sha512: "invalidsha", bucket: s3_resource.bucket("test-s3check"))
+    # Check::FileSha512Match.run!(files: "not_empty_folder/cereali.svg", expected_sha512: "invalidsha", bucket: s3_resource.bucket("test-s3check"))
+    # Check::FileSha512Match.run!(files: "not_empty_folder/doesnotexist", expected_sha512: "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e", bucket: s3_resource.bucket("test-s3check"))
+    # Check::FileSha512Match.run!(files: "not_empty_folder/doesnotexist", expected_sha512: "invalidsha", bucket: s3_resource.bucket("test-s3check"))
   end
 
   private
 
   def interaction_class_for(type)
     case type
-    when 'folder_not_empty'
-      Check::FolderNotEmpty
-    when 'files_not_empty'
-      Check::FilesNotEmpty
-    when 'files_contain'
-      Check::FilesContain
-    when 'files_count'
-      Check::FilesCount
-    when 'files_size'
-      Check::FilesSize
-    when 'syntax_check_files'
-      Check::SyntaxCheckFiles
+    when 'folder_not_empty' then Check::FolderNotEmpty
+    when 'files_not_empty' then Check::FilesNotEmpty
+    when 'files_contain' then Check::FilesContain
+    when 'files_count' then Check::FilesCount
+    when 'files_size' then Check::FilesSize
+    when 'syntax_check_files' then Check::SyntaxCheckFiles
+    when 'file_sha512_match' then Check::FileSha512Match
     else
       raise "Unknown check type: #{type}"
     end
