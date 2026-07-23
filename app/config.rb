@@ -1,39 +1,49 @@
 # frozen_string_literal: true
 
 require 'configatron'
-require 'getoptlong'
-require 'yaml'
 require 'dotenv/load'
+require 'yaml'
 require 'aws-sdk-core'
 
 DEFAULT_CONFIG_FILE = 'config/app.example.yml'
 CONFIG_FILE = 'config/app.yml'
+DEFAULT_CHECKS_FILE = 'config/checks.example.yml'
+CHECKS_FILE = 'config/checks.yml'
+ENV_FILE = '.env'
+DEFAULT_ENV_FILE = '.env.example'
 
 Config = configatron
 Config.root = File.absolute_path(File.expand_path('..', __dir__))
 Config.pid_file_path = "tmp/run.pid"
 
-configs_hash = YAML.load_file(File.join(Config.root, DEFAULT_CONFIG_FILE))
-if File.exist?(File.join(Config.root, CONFIG_FILE))
-  configs_hash.merge!(YAML.load_file(File.join(Config.root, CONFIG_FILE)))
+def deep_merge_hash(base_hash, override_hash)
+  base_hash.merge(override_hash) do |_key, base_value, override_value|
+    if base_value.is_a?(Hash) && override_value.is_a?(Hash)
+      deep_merge_hash(base_value, override_value)
+    else
+      override_value
+    end
+  end
 end
 
-Config.configure_from_hash(configs_hash)
+def load_config!
+  default_file_path = File.join(Config.root, DEFAULT_CONFIG_FILE)
+  raise "Missing default config file: #{DEFAULT_CONFIG_FILE}" unless File.exist?(default_file_path)
 
-Config.google_places_api_key = ENV['GOOGLE_PLACES_API_KEY'] if ENV['GOOGLE_PLACES_API_KEY'].present?
+  merged_config = YAML.load_file(default_file_path) || {}
+
+  custom_file_path = File.join(Config.root, CONFIG_FILE)
+  if File.exist?(custom_file_path)
+    custom_config = YAML.load_file(custom_file_path) || {}
+    merged_config = deep_merge_hash(merged_config, custom_config)
+  end
+  Config.configure_from_hash(merged_config)
+end
 
 Aws.config.update(
-  region: 'eu-west-1',
+  region: Config.s3&.region,
   credentials: Aws::Credentials.new(ENV['S3_ACCESS_KEY'], ENV['S3_SECRET_KEY'])
 )
-
-FARADAY_RETRY_OPTIONS = {
-  max: 2,
-  interval: 0.05,
-  interval_randomness: 0.5,
-  backoff_factor: 2
-}
-
 
 # #######################
 # Options management
@@ -51,7 +61,7 @@ USAGE_OPTIONS = [
     option: '--debug',
     desc:
     <<~DOC.strip.split("\n")
-      Avvia lo scrapping in modalità debug.
+      Start scraping in debug mode.
 
       Usage:
       ruby #{$PROGRAM_NAME} -v
@@ -61,7 +71,7 @@ USAGE_OPTIONS = [
     option: '-h, --help',
     desc:
     <<~DOC.strip.split("\n")
-      Visualizza questo messaggio di aiuto.
+      Show this help message.
 
       ruby #{$PROGRAM_NAME} -h
     DOC
@@ -114,17 +124,312 @@ USAGE_OPTIONS.each do |option|
   end
 end
 
+def config_file_exists?
+  File.exist?(File.join(Config.root, CONFIG_FILE))
+end
+
+def checks_file_path
+  File.join(Config.root, CHECKS_FILE)
+end
+
+def default_checks_file_path
+  File.join(Config.root, DEFAULT_CHECKS_FILE)
+end
+
+def checks_file_exists?
+  File.exist?(checks_file_path)
+end
+
+def load_yaml_file(file_path)
+  YAML.load_file(file_path) || {}
+rescue Psych::SyntaxError => e
+  { '__yaml_error__' => e.message }
+end
+
+def available_check_types
+  Dir.glob(File.join(Config.root, 'app/interactions/check/*.rb')).map do |path|
+    File.basename(path, '.rb')
+  end
+end
+
+def required_paths_from_template(example_hash)
+  checks = example_hash['checks']
+  return [] unless checks.is_a?(Array) && checks.first.is_a?(Hash)
+
+  template_group = checks.first
+  paths = []
+
+  paths << ['name'] if template_group.key?('name')
+  paths << ['bucket'] if template_group.key?('bucket')
+
+  template_check = Array(template_group['check']).first
+  if template_check.is_a?(Hash)
+    paths << ['check', '[]', 'type'] if template_check.key?('type')
+    paths << ['check', '[]', 'params'] if template_check.key?('params')
+  end
+
+  paths
+end
+
+def required_params_for_type(type)
+  case type
+  when 'folder_not_empty'
+    ['folder_path']
+  when 'files_not_empty'
+    ['files']
+  when 'files_contain'
+    ['files', 'content']
+  when 'files_count'
+    ['files']
+  when 'files_size'
+    ['files']
+  when 'syntax_check_files'
+    ['files']
+  else
+    []
+  end
+end
+
+def value_present_for_path?(source_hash, path)
+  current = source_hash
+
+  path.each_with_index do |segment, index|
+    if segment == '[]'
+      return false unless current.is_a?(Array) && current.any?
+
+      remaining_path = path[(index + 1)..]
+      return current.any? { |item| value_present_for_path?(item, remaining_path) }
+    end
+
+    return false unless current.is_a?(Hash) && current.key?(segment)
+
+    current = current[segment]
+  end
+
+  !current.to_s.strip.empty?
+end
+
+def env_file_path
+  File.join(Config.root, ENV_FILE)
+end
+
+def default_env_file_path
+  File.join(Config.root, DEFAULT_ENV_FILE)
+end
+
+def env_file_exists?
+  File.exist?(env_file_path)
+end
+
+def editor_command
+  editor = ENV['EDITOR'].to_s.strip
+  editor.empty? ? 'nano' : editor
+end
+
+def ensure_env_file_exists
+  return if env_file_exists?
+
+  if File.exist?(default_env_file_path)
+    File.write(env_file_path, File.read(default_env_file_path))
+    return
+  end
+
+  File.open(env_file_path, 'w') do |file|
+    file.write("# Amazon S3 credentials\n")
+    file.write("S3_ACCESS_KEY=\n")
+    file.write("S3_SECRET_KEY=\n")
+  end
+end
+
+def open_env_file_in_editor
+  ensure_env_file_exists
+  system(editor_command, env_file_path)
+  reload_env!
+end
+
+def ensure_checks_file_exists
+  return if checks_file_exists?
+
+  if File.exist?(default_checks_file_path)
+    File.write(checks_file_path, File.read(default_checks_file_path))
+    return
+  end
+
+  File.open(checks_file_path, 'w') do |file|
+    file.write({
+      'checks' => [
+        {
+          'name' => 'Example check',
+          'bucket' => '',
+          'check' => [
+            {
+              'type' => 'folder_not_empty',
+              'params' => {
+                'folder_path' => ''
+              }
+            }
+          ]
+        }
+      ]
+    }.to_yaml)
+  end
+end
+
+def open_checks_file_in_editor
+  ensure_checks_file_exists
+  system(editor_command, checks_file_path)
+end
+
+def reload_env!
+  Dotenv.overload(env_file_path) if File.exist?(env_file_path)
+end
+
+def create_configuration_file_if_not_exists
+  return if config_file_exists?
+
+  puts "Configuration not found (#{CONFIG_FILE})."
+  puts 'Starting guided setup for Amazon S3...'
+
+  print 'S3 region (e.g. eu-west-1): '
+  region = STDIN.gets&.chomp.to_s
+
+  config_to_write = {
+    's3' => {
+      'region' => region
+    }
+  }
+
+  File.open(File.join(Config.root, CONFIG_FILE), 'w') do |file|
+    file.write(config_to_write.to_yaml)
+  end
+
+  load_config!
+  puts "Now set S3 keys in #{ENV_FILE}."
+  open_env_file_in_editor
+  puts "Now configure checks in #{CHECKS_FILE}."
+  open_checks_file_in_editor
+  puts "Setup completed: created #{CONFIG_FILE}."
+end
+
+def check_config_validity
+  reload_env!
+  s3 = Config.s3
+  s3_access_key_id = ENV['S3_ACCESS_KEY'].to_s.strip
+  s3_secret_access_key = ENV['S3_SECRET_KEY'].to_s.strip
+
+  validation_errors = []
+  validation_errors << 'ENV.S3_ACCESS_KEY is missing' if s3_access_key_id.empty?
+  validation_errors << 'ENV.S3_SECRET_KEY is missing' if s3_secret_access_key.empty?
+  validation_errors << 's3.region is missing' if s3&.region.to_s.strip.empty?
+  if s3&.region.to_s.strip.present? && !s3.region.to_s.match?(/\A[a-z]{2}-[a-z]+-\d+\z/)
+    validation_errors << "s3.region '#{s3.region}' is not valid (example: eu-west-1)"
+  end
+
+  unless checks_file_exists?
+    validation_errors << "#{CHECKS_FILE} is missing"
+  end
+
+  checks_hash = checks_file_exists? ? load_yaml_file(checks_file_path) : {}
+  if checks_hash.key?('__yaml_error__')
+    validation_errors << "#{CHECKS_FILE} has invalid YAML format"
+  else
+    checks = checks_hash['checks']
+    validation_errors << "#{CHECKS_FILE}: checks must be a non-empty array" unless checks.is_a?(Array) && checks.any?
+
+    checks_example_hash = load_yaml_file(default_checks_file_path)
+    if checks_example_hash.key?('__yaml_error__')
+      validation_errors << "#{DEFAULT_CHECKS_FILE} has invalid YAML format"
+    else
+      required_paths = required_paths_from_template(checks_example_hash)
+
+      checks.each_with_index do |check_group, index|
+        next unless check_group.is_a?(Hash)
+        next if check_group['name'].to_s.strip.empty?
+
+        required_paths.each do |path|
+          next if value_present_for_path?(check_group, path)
+
+          validation_errors << "#{CHECKS_FILE}: checks[#{index}] missing #{path.join('.').gsub('.[]', '[]')}"
+        end
+
+        Array(check_group['check']).each_with_index do |single_check, check_index|
+          next unless single_check.is_a?(Hash)
+
+          type = single_check['type'].to_s.strip
+          if type.end_with?('.rb')
+            validation_errors << "#{CHECKS_FILE}: checks[#{index}].check[#{check_index}].type must be interaction name without .rb"
+            next
+          end
+
+          next if available_check_types.include?(type)
+
+          validation_errors << "#{CHECKS_FILE}: checks[#{index}].check[#{check_index}].type '#{type}' is not valid. Allowed: #{available_check_types.join(', ')}"
+
+          next
+        end
+
+        Array(check_group['check']).each_with_index do |single_check, check_index|
+          next unless single_check.is_a?(Hash)
+
+          type = single_check['type'].to_s.strip
+          params = single_check['params']
+          next unless params.is_a?(Hash)
+
+          required_params_for_type(type).each do |param_key|
+            next unless params[param_key].to_s.strip.empty?
+
+            validation_errors << "#{CHECKS_FILE}: checks[#{index}].check[#{check_index}].params.#{param_key} is missing for type '#{type}'"
+          end
+        end
+      end
+    end
+  end
+
+  if validation_errors.any?
+    puts "Invalid configuration:\n- #{validation_errors.join("\n- ")}"
+    exit 1
+  end
+
+  puts 'S3 configuration is valid.'
+end
+
+def edit_config_file
+  create_configuration_file_if_not_exists
+  system(editor_command, File.join(Config.root, CONFIG_FILE))
+  open_env_file_in_editor
+  open_checks_file_in_editor
+end
+
+def show_current_config
+  reload_env!
+  s3 = Config.s3
+  has_access_key_id = !ENV['S3_ACCESS_KEY'].to_s.strip.empty?
+  has_secret_access_key = !ENV['S3_SECRET_KEY'].to_s.strip.empty?
+
+  puts 'Current configuration:'
+  puts "- file default: #{DEFAULT_CONFIG_FILE}"
+  puts "- file custom:  #{CONFIG_FILE}#{config_file_exists? ? '' : ' (not present)'}"
+  puts "- checks template: #{DEFAULT_CHECKS_FILE}#{File.exist?(default_checks_file_path) ? '' : ' (not present)'}"
+  puts "- checks file: #{CHECKS_FILE}#{checks_file_exists? ? '' : ' (not present)'}"
+  puts "- env template: #{DEFAULT_ENV_FILE}#{File.exist?(default_env_file_path) ? '' : ' (not present)'}"
+  puts '- env (.env):'
+  puts "    S3_ACCESS_KEY: #{has_access_key_id ? 'present' : 'missing'}"
+  puts "    S3_SECRET_KEY: #{has_secret_access_key ? 'present' : 'missing'}"
+  puts '- s3:'
+  puts "    region: #{s3&.region}"
+end
+
 USAGE_MESSAGE = <<~DOC
   Usage:
 
-  ruby #{$PROGRAM_NAME} <command> [options]
+  ruby #{$PROGRAM_NAME} <command>
 
   Commands:
      run               Start all checks. Will read configs and run all the checks.
      stop              Stop running checks. Will send TERM signal to the running process.
-     config-check      TODO diego
-     config-edit       TODO diego
-     config-show       TODO diego
+     config-check      Check the validity of the configuration. Will check if all required configs are present.
+     config-edit       Edit the configuration file. Will open the config file in the default editor.
+     config-show       Show the current configuration. Will display the current configuration values.
      version           Show the current version of the application.
      console           Start an interactive console for debugging and testing.
 
@@ -132,31 +437,27 @@ DOC
 
 def print_help_message
   puts USAGE_MESSAGE
-  puts "OPTIONS:\n"
-  USAGE_OPTIONS.each do |option|
-    puts "\t#{option[:option]}"
-    puts "\t\t#{option[:desc].join("\n\t\t")}\n\n"
-  end
 end
 
-opts.each do |opt, arg|
-  case opt
-  when '--debug'
-    Config.debug = true
-    puts 'Enabled debug mode'
-  when '--file'
-    Config.file = arg
-  when '--help'
-    print_help_message
-    exit
-  when '--query-key', '--query-keys'
-    Config.query_key = arg
-  when '--output-file', '--outfile', '-o'
-    Config.output_file = arg
-  end
-end
+load_config!
+# opts.each do |opt, arg|
+#   case opt
+#   when '--debug'
+#     Config.debug = true
+#     puts 'Enabled debug mode'
+#   when '--file'
+#     Config.file = arg
+#   when '--help'
+#     print_help_message
+#     exit
+#   when '--query-key', '--query-keys'
+#     Config.query_key = arg
+#   when '--output-file', '--outfile', '-o'
+#     Config.output_file = arg
+#   end
+# end
 
-# #######################
-# Validating configurations
-# #######################
-raise 'Missing Google Places API Key' if Config.google_places_api_key.nil?
+# # #######################
+# # Validating configurations
+# # #######################
+# raise 'Missing Google Places API Key' if Config.google_places_api_key.nil?

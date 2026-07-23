@@ -27,13 +27,26 @@ when "version"
 when "help", "-h"
   print_help_message
 when "config-check", "cc"
-  puts "TODO: Read configs and check if they are valid."
+  check_config_validity
 when "config-edit", "ce"
-  puts "TODO: Open config file in editor."
+  edit_config_file
 when "config-show", "cs"
-  puts "TODO: Show current configuration."
+  show_current_config
 when "run", "start"
+  create_configuration_file_if_not_exists
+  check_config_validity
   RunAllChecks.run!
+# when 'finder'
+#   # require_relative 'app/interactions/finder'
+#   Finder.run!
+# when "import-query", "import-queries"
+#   ImportQueries.run!
+# when "processor"
+#   Processor.run!
+# when "export"
+#   Exporter.run!
+# when "watcher", "monitor"
+#   Watcher.run!
 when "stop", "halt", "cancel"
   CancelRunningChecks.run!
 else
