@@ -39,12 +39,37 @@ checks:
           min: 100
           max: 500000
 
-  - name: "Verifica sintassi file"
+  - name: "Verifica sintassi file SVG"
     bucket: "test-s3check"
     check:
       - type: "syntax_check_files"
         params:
           files: "not_empty_folder/*.svg"
+      - type: "files_count"
+        params:
+          files: "not_empty_folder/*.svg"
+          min: 2
+          max: 2
+
+  - name: "Verifica sintassi file JSON"
+    bucket: "test-s3check"
+    check:
+      - type: "files_not_empty"
+        params:
+          files: "validjson.json"
+      - type: "syntax_check_files"
+        params:
+          files: "validjson.json"
+
+  # - name: "[FAIL] Verifica sintassi file JSON"
+  #   bucket: "test-s3check"
+  #   check:
+  #     - type: "files_not_empty"
+  #       params:
+  #         files: "invalidjson.json"
+  #     - type: "syntax_check_files"
+  #       params:
+  #         files: "invalidjson.json"
 
   - name: "Verifica SHA512 file"
     bucket: "test-s3check"
@@ -53,3 +78,11 @@ checks:
         params:
           files: "not_empty_folder/cereali.svg"
           expected_sha512: "575eccf7c752cec3ed24258685abbdc8066f903004b16794255bd46d69408b13c25a963c5edfc00f19eebf33b9281b6433300321e0e27bce457d617b3385b122"
+
+  # - name: "[FAIL] Verifica SHA512 file"
+  #   bucket: "test-s3check"
+  #   check:
+  #     - type: "file_sha512_match"
+  #       params:
+  #         files: "not_empty_folder/cereali.svg"
+  #         expected_sha512: "invalidshaaaaaaaaaaaaaaaa"

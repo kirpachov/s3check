@@ -19,6 +19,7 @@ module Check
         # when ".yaml", ".yml" then compose(Syntax::YamlSyntaxCheck, file: obj)
         # when ".csv" then compose(Syntax::CsvSyntaxCheck, file: obj)
         # when ".js" then compose(Syntax::JsSyntaxCheck, file: obj)
+        when ".json" then compose(Syntax::JsonSyntaxCheck, file: obj)
         when ".svg" then compose(Syntax::SvgSyntaxCheck, file: obj)
         when ".sql" then compose(Syntax::SqlSyntaxCheck, file: obj)
         else
